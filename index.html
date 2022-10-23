@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <title>BMP完全に理解した</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <meta name="description" content="画像を様々な形式のBMP画像(Windows bitmap)に変換します。">
+    <meta property="og:site_name" content="BMP完全に理解した">
+    <meta property="og:title" content="BMP完全に理解した">
+    <meta property="og:description" content="画像を様々な形式のBMP画像(Windows bitmap)に変換します。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://raclamusi.github.io/bmp-conveter/">
+    <meta property="og:image" content="https://raclamusi.github.io/bmp-conveter/icon.bmp">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:creator" content="@raclamusi">
+    <link rel="shortcut icon" type="image/bmp" href="icon.bmp">
+    <link rel="apple-touch-icon" type="image/bmp" href="icon.bmp">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <main class="main">
+        <h1>BMP完全に理解した</h1>
+        <p>入力された画像を様々な形式のBMP(Windows bitmap)画像に変換します。</p>
+        <div class="input_div">
+            <label for="imageInput">BMPに変換する画像を選択してください</label>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+        <div>
+            <table class="bmp_table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>2色BMP</th>
+                        <th>16色BMP</th>
+                        <th>256色BMP</th>
+                        <th>2<sup>15</sup>色BMP</th>
+                        <th>2<sup>24</sup>色BMP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>無圧縮</th>
+                        <td>
+                            <div id="imageOutput1"></div>
+                            <div id="sizeOutput1"></div>
+                        </td>
+                        <td>
+                            <div id="imageOutput4"></div>
+                            <div id="sizeOutput4"></div>
+                        </td>
+                        <td>
+                            <div id="imageOutput8"></div>
+                            <div id="sizeOutput8"></div>
+                        </td>
+                        <td>
+                            <div id="imageOutput16"></div>
+                            <div id="sizeOutput16"></div>
+                        </td>
+                        <td>
+                            <div id="imageOutput24"></div>
+                            <div id="sizeOutput24"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>RLE</th>
+                        <td class="disable"></td>
+                        <td>
+                            <div id="imageOutput4RLE"></div>
+                            <div id="sizeOutput4RLE"></div>
+                        </td>
+                        <td>
+                            <div id="imageOutput8RLE"></div>
+                            <div id="sizeOutput8RLE"></div>
+                        </td>
+                        <td class="disable"></td>
+                        <td class="disable"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <script type="text/javascript" src="converter.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+</body>
+</html>
