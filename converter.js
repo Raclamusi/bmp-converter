@@ -136,6 +136,9 @@ function makeBMPHeader(imageWidth, imageHeight, bitCount, compression, palleteSi
  * @property {number[][]} image
  * @property {number} width
  * @property {number} height
+ * @property {number[]} palleteColors
+ * @property {ImageData} imageData
+ * @property {number[][]=} quantizationCache
  */
 
 /**
@@ -143,6 +146,7 @@ function makeBMPHeader(imageWidth, imageHeight, bitCount, compression, palleteSi
  * @returns {BMPPallete} 
  */
 function makeBMPPallete(imageData) {
+    /** @type {Map<number, number>} */
     const pallete = new Map();
     const palleteImage = [];
     const data = imageData.data;
@@ -151,20 +155,81 @@ function makeBMPPallete(imageData) {
         for (let x = 0; x < imageData.width; ++x, i += 4) {
             const pixel = data[i] << 16 | data[i + 1] << 8 | data[i + 2];
             if (!pallete.has(pixel)) {
-                if (pallete.size >= 256) {
-                    return null;
-                }
                 pallete.set(pixel, pallete.size);
             }
             palleteImage[y].push(pallete.get(pixel));
         }
     }
+    const palleteColors = [...pallete.keys()];
     return {
-        pallete: [...pallete.keys()].flatMap(color => numberToBytes(color)),
+        pallete: palleteColors.flatMap(color => numberToBytes(color)),
         size: pallete.size,
         image: palleteImage,
         width: imageData.width,
         height: imageData.height,
+        palleteColors,
+        imageData,
+    };
+}
+
+/**
+ * @param {BMPPallete} pallete 
+ * @param {number} n 
+ * @returns {BMPPallete} 
+ */
+function makeBMPQuantizedPallete(pallete, n) {
+    if (pallete.size <= n) return pallete;
+    const groups =
+        pallete.quantizationCache?.size <= n
+            ? pallete.quantizationCache
+            : [[...pallete.palleteColors]];
+    while (groups.length < n) {
+        const group = groups.reduce((acc, e) => acc.length < e.length ? e : acc);
+        const rgb = [16, 8, 0].map(sh => group.map(e => e >> sh & 0xff));
+        const minmax = rgb.map(g => g.reduce(([min, max], e) => [e < min ? e : min, max < e ? e : max], [255, 0]));
+        const ranges = minmax.map(([min, max]) => max - min);
+        const axis = ranges.reduce((acc, e, i) => acc[0] < e ? [e, i] : acc, [0, -1])[1];
+        const offset = [16, 8, 0][axis];
+        group.sort((x, y) => (x >> offset & 0xff) - (y >> offset & 0xff));
+        groups.push(group.splice(Math.floor(group.length / 2)));
+    }
+    /** @type {Map<number, number>} */
+    const newPallete = new Map();
+    for (let i = 0; i < n; ++i) {
+        for (const color of groups[i]) {
+            newPallete.set(color, i);
+        }
+    }
+    const palleteImage = [];
+    const { imageData } = pallete;
+    const { data } = imageData;
+    const groupSum = new Array(n).fill().map(e => [0, 0, 0, 0]);
+    for (let y = 0, i = 0; y < imageData.height; ++y) {
+        palleteImage.push([]);
+        for (let x = 0; x < imageData.width; ++x, i += 4) {
+            const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+            const pixel = r << 16 | g << 8 | b;
+            const colorIndex = newPallete.get(pixel);
+            palleteImage[y].push(colorIndex);
+            groupSum[colorIndex][0] += 1;
+            groupSum[colorIndex][1] += r;
+            groupSum[colorIndex][2] += g;
+            groupSum[colorIndex][3] += b;
+        }
+    }
+    const palleteColors = groupSum.map(([count, ...sum]) => {
+        const [r, g, b] = sum.map(e => Math.floor(e / count));
+        return r << 16 | g << 8 | b;
+    });
+    return {
+        pallete: palleteColors.flatMap(color => numberToBytes(color)),
+        size: n,
+        image: palleteImage,
+        width: imageData.width,
+        height: imageData.height,
+        palleteColors,
+        imageData,
+        quantizationCache: groups,
     };
 }
 

@@ -23,14 +23,12 @@
         const imageData = getImageData(await loadImage(imageFile));
         const pallete = makeBMPPallete(imageData);
         
-        if (pallete === null || pallete.size > 2) {
-            outputs.get("1").image.textContent = "この色数では表現できません";
-        }
-        else {
+        {
             const output = outputs.get("1");
             output.image.textContent = "計算中...";
             await new Promise(resolve => setTimeout(() => resolve()));
-            const bmp = makeBMP(makeBMPData1bit(pallete), 1, 0, pallete);
+            const quantizedPallete = makeBMPQuantizedPallete(pallete, 2);
+            const bmp = makeBMP(makeBMPData1bit(quantizedPallete), 1, 0, quantizedPallete);
             const downloadLink = document.createElement("a");
             downloadLink.href = makeBMPURL(bmp);
             downloadLink.download = `${imageFileName}_1bit.bmp`;
@@ -39,15 +37,13 @@
             output.image.appendChild(downloadLink);
             output.size.textContent = `${bmp.length} B`;
         }
-        if (pallete === null || pallete.size > 16) {
-            outputs.get("4").image.textContent = "この色数では表現できません";
-        }
-        else {
+        {
             const output = outputs.get("4");
             output.image.textContent = "計算中...";
             await new Promise(resolve => setTimeout(() => resolve()));
-            const pixels = makeBMPData4bit(pallete);
-            const bmp = makeBMP(pixels, 4, 0, pallete);
+            const quantizedPallete = makeBMPQuantizedPallete(pallete, 16);
+            const pixels = makeBMPData4bit(quantizedPallete);
+            const bmp = makeBMP(pixels, 4, 0, quantizedPallete);
             const downloadLink = document.createElement("a");
             downloadLink.href = makeBMPURL(bmp);
             downloadLink.download = `${imageFileName}_4bit.bmp`;
@@ -60,7 +56,7 @@
             outputRLE.image.textContent = "計算中...";
             await new Promise(resolve => setTimeout(() => resolve()));
             const pixelsRLE = makeBMPDataRLE(pixels, imageData.width, 4);
-            const bmpRLE = makeBMP(pixelsRLE, 4, 2, pallete);
+            const bmpRLE = makeBMP(pixelsRLE, 4, 2, quantizedPallete);
             const downloadLinkRLE = document.createElement("a");
             downloadLinkRLE.href = makeBMPURL(bmpRLE);
             downloadLinkRLE.download = `${imageFileName}_4bitRLE.bmp`;
@@ -69,15 +65,13 @@
             outputRLE.image.appendChild(downloadLinkRLE);
             outputRLE.size.textContent = `${bmpRLE.length} B`;
         }
-        if (pallete === null) {
-            outputs.get("8").image.textContent = "この色数では表現できません";
-        }
-        else {
+        {
             const output = outputs.get("8");
             output.image.textContent = "計算中...";
             await new Promise(resolve => setTimeout(() => resolve()));
-            const pixels = makeBMPData8bit(pallete);
-            const bmp = makeBMP(pixels, 8, 0, pallete);
+            const quantizedPallete = makeBMPQuantizedPallete(pallete, 256);
+            const pixels = makeBMPData8bit(quantizedPallete);
+            const bmp = makeBMP(pixels, 8, 0, quantizedPallete);
             const downloadLink = document.createElement("a");
             downloadLink.href = makeBMPURL(bmp);
             downloadLink.download = `${imageFileName}_8bit.bmp`;
@@ -90,7 +84,7 @@
             outputRLE.image.textContent = "計算中...";
             await new Promise(resolve => setTimeout(() => resolve()));
             const pixelsRLE = makeBMPDataRLE(pixels, imageData.width, 8);
-            const bmpRLE = makeBMP(pixelsRLE, 8, 1, pallete);
+            const bmpRLE = makeBMP(pixelsRLE, 8, 1, quantizedPallete);
             const downloadLinkRLE = document.createElement("a");
             downloadLinkRLE.href = makeBMPURL(bmpRLE);
             downloadLinkRLE.download = `${imageFileName}_8bitRLE.bmp`;
