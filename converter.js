@@ -175,9 +175,10 @@ function makeBMPPallete(imageData) {
 /**
  * @param {BMPPallete} pallete 
  * @param {number} n 
+ * @param {boolean} dithering 
  * @returns {BMPPallete} 
  */
-function makeBMPQuantizedPallete(pallete, n) {
+function makeBMPQuantizedPallete(pallete, n, dithering = false) {
     if (pallete.size <= n) return pallete;
     const groups =
         pallete.quantizationCache?.size <= n
@@ -205,12 +206,10 @@ function makeBMPQuantizedPallete(pallete, n) {
     const { data } = imageData;
     const groupSum = new Array(n).fill().map(e => [0, 0, 0, 0]);
     for (let y = 0, i = 0; y < imageData.height; ++y) {
-        palleteImage.push([]);
         for (let x = 0; x < imageData.width; ++x, i += 4) {
             const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
             const pixel = r << 16 | g << 8 | b;
             const colorIndex = newPallete.get(pixel);
-            palleteImage[y].push(colorIndex);
             groupSum[colorIndex][0] += 1;
             groupSum[colorIndex][1] += r;
             groupSum[colorIndex][2] += g;
@@ -221,6 +220,45 @@ function makeBMPQuantizedPallete(pallete, n) {
         const [r, g, b] = sum.map(e => Math.floor(e / count));
         return r << 16 | g << 8 | b;
     });
+    const data2 = dithering ? data.slice() : data;
+    const addDiff = (diff, y, x, weight) => {
+        if (y >= 0 && y < imageData.height && x >= 0 && x < imageData.width) {
+            for (const j of [0, 1, 2]) {
+                data2[(y * imageData.width + x) * 4 + j] += diff[j] * weight / 16;
+            }
+        }
+    };
+    for (let y = 0, i = 0; y < imageData.height; ++y) {
+        palleteImage.push([]);
+        for (let x = 0; x < imageData.width; ++x, i += 4) {
+            const [r, g, b] = [data2[i], data2[i + 1], data2[i + 2]];
+            const pixel = r << 16 | g << 8 | b;
+            if (!newPallete.has(pixel)) {
+                let colorIndex = -1;
+                let minDist = Infinity;
+                for (const [i, dist] of palleteColors.map((e, i) => {
+                    const [b2, g2, r2] = numberToBytes(e);
+                    return [i, (r - r2) ** 2 + (g - g2) ** 2 + (b - b2) ** 2];
+                })) {
+                    if (dist < minDist) {
+                        colorIndex = i;
+                        minDist = dist;
+                    }
+                }
+                newPallete.set(pixel, colorIndex);
+            }
+            const colorIndex = newPallete.get(pixel);
+            palleteImage[y].push(colorIndex);
+            if (dithering) {
+                const [nb, ng, nr] = numberToBytes(palleteColors[colorIndex]);
+                const diff = [r - nr, g - ng, b - nb];
+                addDiff(diff, y    , x + 1, 7);
+                addDiff(diff, y + 1, x - 1, 3);
+                addDiff(diff, y + 1, x    , 5);
+                addDiff(diff, y + 1, x + 1, 1);
+            }
+        }
+    }
     return {
         pallete: palleteColors.flatMap(color => numberToBytes(color)),
         size: n,

@@ -2,6 +2,8 @@
 
 (async function () {
     const imageInput = document.getElementById("imageInput");
+    const ditheringInput = document.getElementById("ditheringInput");
+    const reconvertButton = document.getElementById("reconvertButton");
     const outputs = new Map(
         ["1", "4", "8", "16", "24", "4RLE", "8RLE"].map(bits => [bits, {
             image: document.getElementById(`imageOutput${bits}`),
@@ -9,7 +11,7 @@
         }])
     );
 
-    imageInput.addEventListener("change", async () => {
+    const convert = async () => {
         for (const [_bits, output] of outputs) {
             output.image.textContent = "";
             output.size.textContent = "";
@@ -22,12 +24,13 @@
         const imageFileName = imageFile.name.replace(/\.[^\.]+$/, "");
         const imageData = getImageData(await loadImage(imageFile));
         const pallete = makeBMPPallete(imageData);
+        const dithering = ditheringInput.checked;
         
         {
             const output = outputs.get("1");
             output.image.textContent = "計算中...";
             await new Promise(resolve => setTimeout(() => resolve()));
-            const quantizedPallete = makeBMPQuantizedPallete(pallete, 2);
+            const quantizedPallete = makeBMPQuantizedPallete(pallete, 2, dithering);
             const bmp = makeBMP(makeBMPData1bit(quantizedPallete), 1, 0, quantizedPallete);
             const downloadLink = document.createElement("a");
             downloadLink.href = makeBMPURL(bmp);
@@ -41,7 +44,7 @@
             const output = outputs.get("4");
             output.image.textContent = "計算中...";
             await new Promise(resolve => setTimeout(() => resolve()));
-            const quantizedPallete = makeBMPQuantizedPallete(pallete, 16);
+            const quantizedPallete = makeBMPQuantizedPallete(pallete, 16, dithering);
             const pixels = makeBMPData4bit(quantizedPallete);
             const bmp = makeBMP(pixels, 4, 0, quantizedPallete);
             const downloadLink = document.createElement("a");
@@ -69,7 +72,7 @@
             const output = outputs.get("8");
             output.image.textContent = "計算中...";
             await new Promise(resolve => setTimeout(() => resolve()));
-            const quantizedPallete = makeBMPQuantizedPallete(pallete, 256);
+            const quantizedPallete = makeBMPQuantizedPallete(pallete, 256, dithering);
             const pixels = makeBMPData8bit(quantizedPallete);
             const bmp = makeBMP(pixels, 8, 0, quantizedPallete);
             const downloadLink = document.createElement("a");
@@ -119,5 +122,8 @@
             output.image.appendChild(downloadLink);
             output.size.textContent = `${bmp.length} B`;
         }
-    });
+    };
+
+    imageInput.addEventListener("change", convert);
+    reconvertButton.addEventListener("click", convert);
 })();
